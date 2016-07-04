@@ -9,7 +9,7 @@ const int coil_time = 15; // sec
 const int saturn_time = 91; // sec TBD
 const int brick_time = 60; // sec
 
-enum {NO_STATE, TIMING_STATE, TOFIRE_STATE, FIRING_STATE} all_state = NO_STATE;
+enum state_enum {NO_STATE, TIMING_STATE, TOFIRE_STATE, FIRING_STATE} all_state = NO_STATE;
 
 int to_fire = -1;
 
@@ -41,6 +41,9 @@ void setup() {
   digitalWrite(MODE_PIN, HIGH);
   // Hi-Z, no pull up, will read low, we can add a pull down if needed
   digitalWrite(ARM_PIN, LOW);
+
+  delay(32767);
+  delay(32767);
   
   fire_state.attach(FIRE_PIN);
   mode_state.attach(MODE_PIN);
@@ -58,7 +61,7 @@ void setup() {
 
 void timing_sm() {
   static unsigned long last_trigger = 0;
-  unsigned long wait_time = mode_state.read() == HIGH ? brick_time * 1000: saturn_time * 1000;
+  unsigned long wait_time = mode_state.read() == HIGH ? brick_time * (long) 1000: saturn_time * (long) 1000;
 
   if (millis() - last_trigger > wait_time) {
     last_trigger = millis();
@@ -100,15 +103,35 @@ void debug_state() {
   switch(all_state) {
     case NO_STATE:
       Serial.println("IDLE STATE");
+      break;
     case TIMING_STATE:
       Serial.println("TIMING STATE");
+      break;
     case TOFIRE_STATE:
       Serial.println("TOFIRE STATE");
+      break;
     case FIRING_STATE:
       Serial.println("FIRING STATE");
+      break;
     default:
       Serial.println("ERROR STATE");
   }
+}
+
+void debug_input() {
+  Serial.print("   Fire button: ");
+  Serial.println(fire_state.read() == HIGH ? "HIGH" : "LOW");
+  Serial.print("   Mode switch: ");
+  Serial.println(mode_state.read() == HIGH ? "HIGH" : "LOW");
+  Serial.print("   Arm switch: ");
+  Serial.println(arm_state.read() == HIGH ? "HIGH" : "LOW");
+
+  Serial.print("   Fire button: ");
+  Serial.println(digitalRead(FIRE_PIN) == HIGH ? "HIGH" : "LOW");
+  Serial.print("   Mode switch: ");
+  Serial.println(digitalRead(MODE_PIN) == HIGH ? "HIGH" : "LOW");
+  Serial.print("   Arm switch: ");
+  Serial.println(digitalRead(ARM_PIN) == HIGH ? "HIGH" : "LOW");
 }
 
 void loop() {
@@ -124,8 +147,15 @@ void loop() {
     digitalWrite(LED_PIN, LOW);
   }
 
-  if (millis() - last_state_out > 1000)
+/*  if (millis() - last_state_out > 1000) {
     debug_state();
+    last_state_out = millis();
+    delay(1000);
+  }*/
+    debug_state();
+    debug_input();
+    delay(1000);
+  
 
   if (arm_state.rose())
     Serial.println("ARMED!");
